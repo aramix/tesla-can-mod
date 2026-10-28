@@ -131,41 +131,46 @@ void loop()
 #endif
 
 #ifdef TOUCH_ENABLE
-    uint16_t tx = 0, ty = 0, rawX = 0, rawY = 0;
-    if (touch.getTouch(tx, ty, &rawX, &rawY))
+    static unsigned long lastTouchPoll = 0;
+    unsigned long nowTouch = millis();
+    if (nowTouch - lastTouchPoll >= 30) // Poll I2C touch at ~33 Hz
     {
-        unsigned long now = millis();
-        if (now - lastTouchTime > 350)
+        lastTouchPoll = nowTouch;
+        uint16_t tx = 0, ty = 0, rawX = 0, rawY = 0;
+        if (touch.getTouch(tx, ty, &rawX, &rawY))
         {
-            lastTouchTime = now;
-            Serial.printf("[Touch] x=%u, y=%u (raw rx=%u, ry=%u)\n", tx, ty, rawX, rawY);
+            if (nowTouch - lastTouchTime > 350)
+            {
+                lastTouchTime = nowTouch;
+                Serial.printf("[Touch] x=%u, y=%u (raw rx=%u, ry=%u)\n", tx, ty, rawX, rawY);
 
-            // Tappable status rows on portrait layout:
-            if (ty >= 45 && ty < 85) // FSD row
-            {
-                handler->fsdEnabled = !handler->fsdEnabled;
-                globalLog.add(handler->fsdEnabled ? "Touch: FSD enabled" : "Touch: FSD disabled");
-                lcd.showMessage(handler->fsdEnabled ? "FSD: ACTIVE" : "FSD: OFF", handler->fsdEnabled ? 0x07E0 : 0x4208);
-                lcd.update(handler.get());
-            }
-            else if (ty >= 105 && ty < 145) // Mode row
-            {
-                handler->speedProfile = (handler->speedProfile + 1) % 5;
-                const char *pnames[] = {"Chill", "Normal", "Sport", "P3", "P4"};
-                char msg[32];
-                snprintf(msg, sizeof(msg), "Mode: %s", pnames[handler->speedProfile]);
-                globalLog.add(msg);
-                lcd.showMessage(msg, 0x07FF);
-                lcd.update(handler.get());
-            }
-            else if (ty >= 250 && ty < 295) // Precond row
-            {
-                handler->precondRequested = !handler->precondRequested;
-                if (!handler->precondRequested)
-                    handler->precondActive = false;
-                globalLog.add(handler->precondRequested ? "Touch: Precond ON" : "Touch: Precond OFF");
-                lcd.showMessage(handler->precondRequested ? "Precond: START" : "Precond: STOP", handler->precondRequested ? 0xFFE0 : 0x4208);
-                lcd.update(handler.get());
+                // Tappable status rows on portrait layout:
+                if (ty >= 45 && ty < 85) // FSD row
+                {
+                    handler->fsdEnabled = !handler->fsdEnabled;
+                    globalLog.add(handler->fsdEnabled ? "Touch: FSD enabled" : "Touch: FSD disabled");
+                    lcd.showMessage(handler->fsdEnabled ? "FSD: ACTIVE" : "FSD: OFF", handler->fsdEnabled ? 0x07E0 : 0x4208);
+                    lcd.update(handler.get());
+                }
+                else if (ty >= 105 && ty < 145) // Mode row
+                {
+                    handler->speedProfile = (handler->speedProfile + 1) % 5;
+                    const char *pnames[] = {"Chill", "Normal", "Sport", "P3", "P4"};
+                    char msg[32];
+                    snprintf(msg, sizeof(msg), "Mode: %s", pnames[handler->speedProfile]);
+                    globalLog.add(msg);
+                    lcd.showMessage(msg, 0x07FF);
+                    lcd.update(handler.get());
+                }
+                else if (ty >= 250 && ty < 295) // Precond row
+                {
+                    handler->precondRequested = !handler->precondRequested;
+                    if (!handler->precondRequested)
+                        handler->precondActive = false;
+                    globalLog.add(handler->precondRequested ? "Touch: Precond ON" : "Touch: Precond OFF");
+                    lcd.showMessage(handler->precondRequested ? "Precond: START" : "Precond: STOP", handler->precondRequested ? 0xFFE0 : 0x4208);
+                    lcd.update(handler.get());
+                }
             }
         }
     }

@@ -23,9 +23,9 @@
 
 ## What is TeslaCAN?
 
-TeslaCAN is an open-source CAN-bus modification firmware for
-**Waveshare ESP32-S3-Touch-LCD-2** (2.0″ capacitive touch screen) and
-**Waveshare ESP32-C6-LCD-1.47**. It plugs into the Tesla Model 3 / Y
+TeslaCAN is an open-source CAN-bus modification firmware for the
+**Waveshare ESP32-C6-LCD-1.47** (default / primary) and the
+**Waveshare ESP32-S3-Touch-LCD-2** (2.0″ capacitive touch screen). It plugs into the Tesla Model 3 / Y
 diagnostic port and gives you:
 
 - **FSD activation** at the CAN frame layer (requires an active FSD
@@ -68,8 +68,8 @@ diagnostic port and gives you:
 
 | Part                                      | Notes                                                       |
 |-------------------------------------------|-------------------------------------------------------------|
-| Waveshare **ESP32-S3-Touch-LCD-2** (Rec.) | 2.0″ 240×320 IPS, CST816D touch, 16MB Flash, 8MB PSRAM       |
-| *or* Waveshare **ESP32-C6-LCD-1.47**      | 1.47″ 172×320 ST7789 display, WiFi 6 + BLE 5.0              |
+| Waveshare **ESP32-C6-LCD-1.47** (Default) | 1.47″ 172×320 ST7789 display, WiFi 6 + BLE 5.0              |
+| *or* Waveshare **ESP32-S3-Touch-LCD-2**   | 2.0″ 240×320 IPS, CST816D touch, 16MB Flash, 8MB PSRAM       |
 | **SN65HVD230** CAN transceiver            | 3.3 V tolerant transceiver (VP230 / Waveshare CAN Board)    |
 | **LM2596** buck converter                 | 12 V → 5 V step-down for car power                          |
 | Dupont jumper wires                       | Female-to-female                                            |
@@ -99,7 +99,23 @@ Total BOM, without the Flipper: **~$25–$30**.
 
 ## Pin maps
 
-### 1. Waveshare ESP32-S3-Touch-LCD-2 (Recommended)
+### 1. Waveshare ESP32-C6-LCD-1.47 (Default)
+
+| Function       | GPIO | Notes                                  |
+|----------------|------|----------------------------------------|
+| TWAI TX        | 0    | to SN65HVD230 TX                       |
+| TWAI RX        | 1    | from SN65HVD230 RX                     |
+| **Flipper TX** | **4** | to Flipper pin 14 (RX) — `FLIPPER_UART_TX` |
+| **Flipper RX** | **5** | to Flipper pin 13 (TX) — `FLIPPER_UART_RX` |
+| LCD SPI SCK    | 7    | built-in                               |
+| LCD SPI MOSI   | 6    | built-in                               |
+| LCD CS         | 14   | built-in                               |
+| LCD DC         | 15   | built-in                               |
+| LCD RST        | 21   | built-in                               |
+| LCD BL         | 22   | backlight                              |
+| Activity LED   | 8    | built-in                               |
+
+### 2. Waveshare ESP32-S3-Touch-LCD-2
 
 Board features two 14-pin headers (P1 and P2), ST7789T3 display, and CST816D touch controller:
 
@@ -122,25 +138,9 @@ Board features two 14-pin headers (P1 and P2), ST7789T3 display, and CST816D tou
 > **Tip for Flipper Zero:** Header P2 pins 1–4 provide consecutive `[ 3.3V | GND | TX(43) | RX(44) ]`, allowing a standard 4-pin Dupont cable to plug directly into the board.
 
 #### Touch Controls (ESP32-S3-Touch-LCD-2)
-- **Tap FSD row (Y 50–80):** Toggle FSD on/off
-- **Tap Mode row (Y 110–140):** Cycle drive profile (`Chill` → `Normal` → `Sport` → `P3` → `P4`)
-- **Tap Precond row (Y 255–290):** Toggle battery preconditioning on/off
-
-### 2. Waveshare ESP32-C6-LCD-1.47
-
-| Function       | GPIO | Notes                                  |
-|----------------|------|----------------------------------------|
-| TWAI TX        | 0    | to SN65HVD230 TX                       |
-| TWAI RX        | 1    | from SN65HVD230 RX                     |
-| **Flipper TX** | **4** | to Flipper pin 14 (RX) — `FLIPPER_UART_TX` |
-| **Flipper RX** | **5** | to Flipper pin 13 (TX) — `FLIPPER_UART_RX` |
-| LCD SPI SCK    | 7    | built-in                               |
-| LCD SPI MOSI   | 6    | built-in                               |
-| LCD CS         | 14   | built-in                               |
-| LCD DC         | 15   | built-in                               |
-| LCD RST        | 21   | built-in                               |
-| LCD BL         | 22   | backlight                              |
-| Activity LED   | 8    | built-in                               |
+- **Tap FSD row (Y 45–85):** Toggle FSD on/off
+- **Tap Mode row (Y 105–145):** Cycle drive profile (`Chill` → `Normal` → `Sport` → `P3` → `P4`)
+- **Tap Precond row (Y 250–295):** Toggle battery preconditioning on/off
 
 All UART/CAN pins can be remapped via PlatformIO build flags in [`platformio.ini`](platformio.ini).
 ## CAN map
@@ -214,13 +214,13 @@ documented in [`include/uart_bridge.h`](include/uart_bridge.h).
 git clone https://github.com/tuncasoftbildik/tesla-can-mod.git
 cd tesla-can-mod
 
-# Build for Waveshare ESP32-S3-Touch-LCD-2 (default)
+# Build for Waveshare ESP32-C6-LCD-1.47 (default)
+pio run
+pio run -t upload        # flash over USB-C
+
+# Or build for Waveshare ESP32-S3-Touch-LCD-2
 pio run -e waveshare_esp32_s3_touch_lcd_2
 pio run -e waveshare_esp32_s3_touch_lcd_2 -t upload
-
-# Or build for Waveshare ESP32-C6-LCD-1.47
-pio run -e esp32c6
-pio run -e esp32c6 -t upload
 
 # Watch serial monitor
 pio device monitor
@@ -339,10 +339,9 @@ not bench-validated.
 
 ### TeslaCAN nedir?
 
-TeslaCAN, **Waveshare ESP32-S3-Touch-LCD-2** (2.0″ dokunmatik ekran) ve
-**Waveshare ESP32-C6-LCD-1.47** için açık kaynaklı bir CAN-bus
+TeslaCAN, **Waveshare ESP32-C6-LCD-1.47** (varsayılan / ana hedef) ve
+**Waveshare ESP32-S3-Touch-LCD-2** (2.0″ dokunmatik ekran) için açık kaynaklı bir CAN-bus
 modifikasyon firmware'idir. Tesla Model 3/Y'nin teşhis portuna bağlanır
-ve şunları sunar:
 
 - **FSD aktivasyonu** — CAN frame seviyesinde (araçta aktif FSD aboneliği
   gerekir)
@@ -403,14 +402,13 @@ pip install pyserial
 git clone https://github.com/tuncasoftbildik/tesla-can-mod.git
 cd tesla-can-mod
 
-# Waveshare ESP32-S3-Touch-LCD-2 için (varsayılan)
+# Waveshare ESP32-C6-LCD-1.47 için (varsayılan)
+pio run
+pio run -t upload        # USB-C ile yükle
+
+# veya Waveshare ESP32-S3-Touch-LCD-2 için
 pio run -e waveshare_esp32_s3_touch_lcd_2
 pio run -e waveshare_esp32_s3_touch_lcd_2 -t upload
-
-# veya Waveshare ESP32-C6-LCD-1.47 için
-pio run -e esp32c6
-pio run -e esp32c6 -t upload
-
 pio device monitor       # serial logları izle
 ```
 
