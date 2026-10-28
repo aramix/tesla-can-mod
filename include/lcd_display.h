@@ -39,6 +39,10 @@
 #define LCD_ROTATION 0
 #endif
 
+// The vertical 8-row dashboard layout requires portrait orientation (height >= 320)
+static_assert(LCD_ROTATION == 0 || LCD_ROTATION == 2,
+              "LCDDisplay requires portrait orientation (LCD_ROTATION must be 0 or 2)");
+
 class LCDDisplay
 {
 public:
@@ -49,7 +53,9 @@ public:
         tft_->init(LCD_WIDTH, LCD_HEIGHT);
         // Boost SPI clock to 40MHz for fast, flicker-free rendering
         tft_->setSPISpeed(40000000);
-        tft_->setRotation(LCD_ROTATION);
+        // Enforce portrait rotation (0 or 2); landscape rotations 1 and 3 are rejected by the layout
+        uint8_t rot = (LCD_ROTATION == 2) ? 2 : 0;
+        tft_->setRotation(rot);
 #if defined(LCD_INVERT) && (LCD_INVERT != 0)
         tft_->invertDisplay(true);
 #endif
