@@ -5,9 +5,7 @@
 #include <SPI.h>
 #include "handlers.h"
 
-// Waveshare ESP32-C6-LCD-1.47: ST7789V, 172x320
-// SPI: MOSI=6, SCLK=7, CS=14, DC=15, RST=21, BL=22
-
+// Configurable pin mapping with ESP32-C6-LCD-1.47 defaults
 #ifndef LCD_SCK_PIN
 #define LCD_SCK_PIN 7
 #endif
@@ -51,7 +49,7 @@ public:
         SPI.begin(LCD_SCK_PIN, LCD_MISO_PIN, LCD_MOSI_PIN, LCD_CS_PIN);
         tft_ = new Adafruit_ST7789(&SPI, LCD_CS_PIN, LCD_DC_PIN, LCD_RST_PIN);
         tft_->init(LCD_WIDTH, LCD_HEIGHT);
-        // Boost SPI clock to 40MHz for fast, flicker-free rendering
+        // Boost SPI clock to 40MHz for fast, flicker-free frame rendering
         tft_->setSPISpeed(40000000);
         // Enforce portrait rotation (0 or 2); landscape rotations 1 and 3 are rejected by the layout
         uint8_t rot = (LCD_ROTATION == 2) ? 2 : 0;
@@ -182,7 +180,11 @@ private:
         tft_->print("TeslaCAN");
         tft_->setTextColor(GRAY, 0x1082);
         tft_->setTextSize(1);
+#if defined(BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_2)
+        const char *sub = "ESP32-S3 Touch Mod";
+#else
         const char *sub = "ESP32-C6 FSD Mod";
+#endif
         int16_t subw = strlen(sub) * 6;
         int16_t subX = (LCD_WIDTH > subw) ? (LCD_WIDTH - subw) / 2 : 12;
         tft_->setCursor(subX, 32);
@@ -206,6 +208,7 @@ private:
             tft_->print(labels[i]);
         }
 
+        // Perf bar static background
         initPerfBar();
     }
 

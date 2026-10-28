@@ -23,7 +23,8 @@
 
 ## What is TeslaCAN?
 
-TeslaCAN is an open-source CAN-bus modification firmware for the
+TeslaCAN is an open-source CAN-bus modification firmware for
+**Waveshare ESP32-S3-Touch-LCD-2** (2.0″ capacitive touch screen) and
 **Waveshare ESP32-C6-LCD-1.47**. It plugs into the Tesla Model 3 / Y
 diagnostic port and gives you:
 
@@ -35,14 +36,15 @@ diagnostic port and gives you:
 - **Battery preconditioning trigger** — heat the pack before plug-in
 - **Motor telemetry + 0–100 km/h timer** — live front/rear drive-inverter
   torque, vehicle speed, and a passive launch stopwatch (last + session best)
-- **A built-in 1.47″ color LCD** that always shows live status without a
-  phone
+- **Built-in color LCD** — 2.0″ 240×320 IPS with capacitive touch on
+  ESP32-S3 (or 1.47″ on ESP32-C6) displaying live telemetry without a phone
+- **Interactive on-screen touch controls** (ESP32-S3): tap to toggle FSD,
+  cycle speed modes (Chill/Normal/Sport/Max/Sloth), or trigger battery preconditioning
 - **A WiFi access point + web dashboard** at `http://192.168.4.1`
 - **A Flipper Zero companion app** that talks to the firmware over a
   4-wire UART link — see [flipper/README.md](flipper/README.md)
 - **A reference Python client** ([`tools/teslacan_client.py`](tools/teslacan_client.py))
   for scripting and testing without any extra hardware
-
 ## How it compares
 
 |                            | TeslaCAN (this repo)                | hypery11/flipper-tesla-fsd        | S3XY Commander (commercial) |
@@ -64,15 +66,16 @@ diagnostic port and gives you:
 
 ## Hardware
 
-| Part                              | Notes                                     |
-|-----------------------------------|-------------------------------------------|
-| Waveshare **ESP32-C6-LCD-1.47**   | 172×320 ST7789 display, WiFi 6 + BLE 5.0  |
-| **SN65HVD230** CAN transceiver    | 3.3 V tolerant, common on Aliexpress      |
-| **LM2596** buck converter         | 12 V → 5 V for the ESP32                  |
-| Dupont jumper wires               | Female-to-female                          |
-| *(optional)* Flipper Zero         | For the companion app                     |
+| Part                                      | Notes                                                       |
+|-------------------------------------------|-------------------------------------------------------------|
+| Waveshare **ESP32-S3-Touch-LCD-2** (Rec.) | 2.0″ 240×320 IPS, CST816D touch, 16MB Flash, 8MB PSRAM       |
+| *or* Waveshare **ESP32-C6-LCD-1.47**      | 1.47″ 172×320 ST7789 display, WiFi 6 + BLE 5.0              |
+| **SN65HVD230** CAN transceiver            | 3.3 V tolerant transceiver (VP230 / Waveshare CAN Board)    |
+| **LM2596** buck converter                 | 12 V → 5 V step-down for car power                          |
+| Dupont jumper wires                       | Female-to-female                                            |
+| *(optional)* Flipper Zero                 | For the companion app                                       |
 
-Total BOM, without the Flipper: **~$25**.
+Total BOM, without the Flipper: **~$25–$30**.
 
 ## Wiring (in-car)
 
@@ -94,7 +97,36 @@ Total BOM, without the Flipper: **~$25**.
                        └───────────┘    └──────────────┘
 ```
 
-## Pin map
+## Pin maps
+
+### 1. Waveshare ESP32-S3-Touch-LCD-2 (Recommended)
+
+Board features two 14-pin headers (P1 and P2), ST7789T3 display, and CST816D touch controller:
+
+| Function / Net           | Pin / GPIO   | Header Pin | Notes                                      |
+|--------------------------|--------------|------------|--------------------------------------------|
+| **TWAI (CAN) TX**        | **GPIO 16**  | P1 Pin 4   | Connect to SN65HVD230 TX                   |
+| **TWAI (CAN) RX**        | **GPIO 17**  | P1 Pin 5   | Connect to SN65HVD230 RX                   |
+| Power (CAN Transceiver)  | 3.3V / GND   | P2 Pin 1,2 | Or 5V/GND from P1 Pin 14, 13               |
+| **Flipper UART TX**      | **GPIO 43**  | P2 Pin 3   | To Flipper pin 14 (RX)                     |
+| **Flipper UART RX**      | **GPIO 44**  | P2 Pin 4   | To Flipper pin 13 (TX)                     |
+| LCD SPI MOSI             | GPIO 38      | Onboard    | Built-in ST7789T3 SPI                      |
+| LCD SPI SCLK             | GPIO 39      | Onboard    | Built-in ST7789T3 SPI                      |
+| LCD DC                   | GPIO 42      | Onboard    | Built-in ST7789T3 SPI                      |
+| LCD CS                   | GPIO 45      | Onboard    | Built-in ST7789T3 SPI                      |
+| LCD Backlight            | GPIO 1       | Onboard    | Active HIGH                                |
+| Touch I2C SDA            | GPIO 48      | P2 Pin 6   | CST816D touch & QMI8658 IMU                |
+| Touch I2C SCL            | GPIO 47      | P2 Pin 5   | CST816D touch & QMI8658 IMU                |
+| Touch INT                | GPIO 46      | Onboard    | Boot / Touch interrupt                     |
+
+> **Tip for Flipper Zero:** Header P2 pins 1–4 provide consecutive `[ 3.3V | GND | TX(43) | RX(44) ]`, allowing a standard 4-pin Dupont cable to plug directly into the board.
+
+#### Touch Controls (ESP32-S3-Touch-LCD-2)
+- **Tap FSD row (Y 50–80):** Toggle FSD on/off
+- **Tap Mode row (Y 110–140):** Cycle drive profile (`Chill` → `Normal` → `Sport` → `P3` → `P4`)
+- **Tap Precond row (Y 255–290):** Toggle battery preconditioning on/off
+
+### 2. Waveshare ESP32-C6-LCD-1.47
 
 | Function       | GPIO | Notes                                  |
 |----------------|------|----------------------------------------|
@@ -110,9 +142,7 @@ Total BOM, without the Flipper: **~$25**.
 | LCD BL         | 22   | backlight                              |
 | Activity LED   | 8    | built-in                               |
 
-All UART/CAN pins can be remapped via PlatformIO build flags in
-[`platformio.ini`](platformio.ini).
-
+All UART/CAN pins can be remapped via PlatformIO build flags in [`platformio.ini`](platformio.ini).
 ## CAN map
 
 | CAN ID         | Name                  | Direction  | Function                                       |
@@ -183,11 +213,18 @@ documented in [`include/uart_bridge.h`](include/uart_bridge.h).
 ```bash
 git clone https://github.com/tuncasoftbildik/tesla-can-mod.git
 cd tesla-can-mod
-pio run                  # build
-pio run -t upload        # flash over USB-C
-pio device monitor       # watch serial logs
-```
 
+# Build for Waveshare ESP32-S3-Touch-LCD-2 (default)
+pio run -e waveshare_esp32_s3_touch_lcd_2
+pio run -e waveshare_esp32_s3_touch_lcd_2 -t upload
+
+# Or build for Waveshare ESP32-C6-LCD-1.47
+pio run -e esp32c6
+pio run -e esp32c6 -t upload
+
+# Watch serial monitor
+pio device monitor
+```
 ## Build flags
 
 Edit [`platformio.ini`](platformio.ini) to customise:
@@ -302,7 +339,8 @@ not bench-validated.
 
 ### TeslaCAN nedir?
 
-TeslaCAN, **Waveshare ESP32-C6-LCD-1.47** için açık kaynaklı bir CAN-bus
+TeslaCAN, **Waveshare ESP32-S3-Touch-LCD-2** (2.0″ dokunmatik ekran) ve
+**Waveshare ESP32-C6-LCD-1.47** için açık kaynaklı bir CAN-bus
 modifikasyon firmware'idir. Tesla Model 3/Y'nin teşhis portuna bağlanır
 ve şunları sunar:
 
@@ -313,13 +351,13 @@ ve şunları sunar:
   sıcaklığı, Wh/km
 - **Batarya ön koşullandırma** tetikleyici — şarja takmadan önce paketi
   ısıt
-- **Dahili 1.47″ renkli LCD** — telefon olmadan da canlı veri
+- **Dahili renkli LCD + Dokunmatik Kontroller** (ESP32-S3): 2.0″ ekranda
+  FSD, sürüş modu ve ön ısıtmayı ekrana dokunarak açıp kapatma
 - **WiFi AP + web paneli** (`http://192.168.4.1`)
 - **Flipper Zero companion uygulaması** — 4 kabloluk UART üzerinden
   (bkz. [flipper/README.md](flipper/README.md))
 - **Referans Python istemcisi** ([`tools/teslacan_client.py`](tools/teslacan_client.py))
   — ekstra donanım olmadan scripting & test için
-
 ### Rakiplerle karşılaştırma
 
 |                                  | TeslaCAN                            | hypery11/flipper-tesla-fsd | S3XY Commander |
@@ -364,8 +402,15 @@ pip install pyserial
 ```bash
 git clone https://github.com/tuncasoftbildik/tesla-can-mod.git
 cd tesla-can-mod
-pio run                  # derle
-pio run -t upload        # USB-C ile yükle
+
+# Waveshare ESP32-S3-Touch-LCD-2 için (varsayılan)
+pio run -e waveshare_esp32_s3_touch_lcd_2
+pio run -e waveshare_esp32_s3_touch_lcd_2 -t upload
+
+# veya Waveshare ESP32-C6-LCD-1.47 için
+pio run -e esp32c6
+pio run -e esp32c6 -t upload
+
 pio device monitor       # serial logları izle
 ```
 
